@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 //  Forza Horizon 4  ——  载具自由移动 (两遍值搜索 + DataOut 偏航角)
 //  ---------------------------------------------------------------------------
 //  静态镜像 (CE 实测):
@@ -139,6 +139,7 @@ struct Options {
     int    demoSecs    = 0;       // demo 模式自动关闭秒数(0=不自动关)
     bool   noResidency = false;   // 关掉"只扫常驻页"的优化
     bool   ignoreLastCheck = false; // 忽略"最后一个必须是 exe+偏移"的校验
+    bool   showHelp    = false;   // 只是打印帮助: 退出时不要 system("pause") 卡住脚本
 };
 
 static Options g_opt;
@@ -763,9 +764,10 @@ static void PrintHelp() {
         "  --zero-eps F     判定坐标是 0 的阈值, 默认 0.01\n"
         "\n移动:\n"
         "  --speed F        基础速度 m/s, 默认 25\n"
-        "  --height-axis A  哪个分量是高度: x / y / z (默认 z)\n"
-        "                   地面平面 = 另外两个轴; 前进公式 X+=cos(yaw)*v, Y+=sin(yaw)*v\n"
-        "                   (按你易语言里的版本 2 写的; 如果前进方向不对先调 --yaw-offset)\n"
+        "  --height-axis A  哪个分量是高度: x / y / z (默认 y; 实测 FH4 高度是 Y)\n"
+        "                   地面平面 = 另外两个轴; 默认下 yaw=0 车头朝 +Z, yaw=90 朝 +X\n"
+        "                   即 X += sin(yaw)*v, Z += cos(yaw)*v\n"
+        "                   方向不对先调 --yaw-offset, 再试 --invert-fwd / --invert-right\n"
         "  --yaw-offset DEG 偏航角修正, 默认 0 (方向不对先调这个)\n"
         "  --yaw-bytes N    Data Out 包里 Yaw 偏移, 默认 56\n"
         "  --port N         Data Out 端口, 默认 5300\n"
@@ -781,8 +783,9 @@ static void PrintHelp() {
         "          值可写单字符(I / W / ;), 或名字 UP DOWN LEFT RIGHT SPACE TAB SHIFT\n"
         "          CTRL ALT ENTER BACK NUM0-NUM9 F1-F12 0x5A(十六进制)\n"
         "  提醒: 别用游戏自己的驾驶键(W/A/S/D), 否则游戏也在动, 分不清是谁推的\n"
-        "其他: 小键盘 +/- 调速，F9 武装/解除，F10 退出\n"
-        "                  1 存点  7 回点  5 暂停写入  0 切换写镜像  F10 退出\n");
+        "\n界面内快捷键:\n"
+        "  F9 武装/解除写入    F5 暂停写入    小键盘 +/- 调速\n"
+        "  1 存点   7 回点    0 切换写静态镜像    F10 退出\n");
 }
 
 static bool ParseArgs(int argc, char** argv) {
@@ -863,7 +866,7 @@ static bool ParseArgs(int argc, char** argv) {
         else if (a == "--selftest")      g_opt.selfTest = true;
         else if (a == "--gui-demo")      g_opt.guiDemo = true;
         else if (a == "--demo-secs")     g_opt.demoSecs = ni(0);
-        else if (a == "-h" || a == "--help") { PrintHelp(); return false; }
+        else if (a == "-h" || a == "--help") { PrintHelp(); g_opt.showHelp = true; return false; }
         else printf("[!] 未知选项: %s\n", a.c_str());
     }
     return true;
@@ -1428,7 +1431,11 @@ static int RunImGuiWindow(GuiState& st) {
 
 int main(int argc, char** argv) {
     InitConsole();
-    if (!ParseArgs(argc, argv)) { system("pause"); return 0; }
+    if (!ParseArgs(argc, argv)) {
+        fflush(stdout);
+        if (!g_opt.showHelp) system("pause");   // --help 不留 pause, 方便管道/脚本
+        return 0;
+    }
     LoadKeys(g_keySetMask);      // 按键: 配置文件 + 命令行覆盖
     if (g_opt.selfTest) { RunSelfTest(); system("pause"); return 0; }
 
