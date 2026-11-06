@@ -66,3 +66,23 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# 本项目: 构建产物 / 冗余文件
+obj/
+imgui.zip
+imgui_tmp/
+imgui.ini
+*.exe
+.vs/
+# ImGui 上游里本项目用不到的部分 (build.bat 只编译核心 5 个文件 + win32/dx11 后端)
+imgui/examples/
+imgui/docs/
+imgui/misc/
+imgui/.github/
+imgui/imgui_demo.cpp
+# 只保留用到的两个后端 (win32 + dx11)
+imgui/backends/*
+!imgui/backends/imgui_impl_win32.cpp
+!imgui/backends/imgui_impl_win32.h
+!imgui/backends/imgui_impl_dx11.cpp
+!imgui/backends/imgui_impl_dx11.h
